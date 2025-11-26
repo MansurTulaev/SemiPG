@@ -1,0 +1,22 @@
+﻿services:
+  postgres-source:
+    image: postgres:15-alpine
+    container_name: pg-source-15
+    environment:
+      POSTGRES_DB: source_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"    # ← ИЗМЕНИЛ 5432 на 5434
+    volumes:
+      - ./init_source.sql:/docker-entrypoint-initdb.d/init_source.sql
+
+  postgres-target:
+    image: postgres:15-alpine
+    container_name: pg-target-15
+    environment:
+      POSTGRES_DB: target_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"    # ← ИЗМЕНИЛ 5433 на 5435
