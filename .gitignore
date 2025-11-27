@@ -1,0 +1,92 @@
+# Gitignore для PostgreSQL Migration Tool
+
+# Временные файлы миграции
+work/
+*.tmp
+*.temp
+*.csv
+
+# Логи
+*.log
+logs/
+migration.log
+
+# Резервные копии
+*.bak
+*.backup
+backup/
+backups/
+
+# Файлы БД
+*.sqlite
+*.db
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE/Editor файлы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Конфигурационные файлы с паролями (кроме примеров)
+config/*.conf
+!config/*.example.conf
+!config/migrator.conf.example
+
+# Docker
+docker-compose.override.yml
+
+# Локальные тестовые данные
+test_data/
+local/
+
+# Окружение
+.env
+.env.local
+.env.*.local
+
+# Бинарные файлы (если появятся)
+*.bin
+*.exe
+
+# Временные SQL файлы
+*.sql.tmp
+/temp/
+
+# PID файлы
+*.pid
+
+# Кэш
+.cache/
+__pycache__/  # если будет Python код
+
+# Артефакты сборки
+dist/
+build/
+*.tar.gz
+*.zip
+
+# OS specific
+ehthumbs.db
+Icon?
+$RECYCLE.BIN/
+
+# Архивы
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Локальные настройки
+local.config
+personal.conf
