@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# ЗАМЕНИТЕ функцию validate_migration:
 validate_migration() {
     log "Validating migration results..."
     local tables=($(get_tables_to_migrate))
@@ -8,8 +9,8 @@ validate_migration() {
     local errors=0
     
     for table in "${tables[@]}"; do
-        local source_count=$(psql "$SOURCE_DSN" -t -c "SELECT COUNT(*) FROM $table;" | tr -d ' ' | grep -v '^$')
-        local target_count=$(psql "$TARGET_DSN" -t -c "SELECT COUNT(*) FROM $table;" | tr -d ' ' | grep -v '^$')
+        local source_count=$(psql "$SOURCE_DSN" -t -c "SELECT COUNT(*) FROM $table;" 2>/dev/null | tr -d ' ' | grep -v '^$')
+        local target_count=$(psql "$TARGET_DSN" -t -c "SELECT COUNT(*) FROM $table;" 2>/dev/null | tr -d ' ' | grep -v '^$')
         
         source_count=${source_count:-0}
         target_count=${target_count:-0}
@@ -20,18 +21,17 @@ validate_migration() {
         if [[ "$source_count" -eq "$target_count" ]]; then
             log "✓ Table $table: $source_count = $target_count"
         else
-            warn "✗ Table $table: source=$source_count, target=$target_count"
+            log_warn "✗ Table $table: source=$source_count, target=$target_count"  # ИСПРАВЛЕНО: log_warn вместо warn
             errors=$((errors + 1))
         fi
     done
     
-    # ИСПРАВЛЕННАЯ СТРОКА:
     log "Total records: source=$total_source, target=$total_target"
     
     if [[ $errors -eq 0 ]]; then
         log "✓ Migration validation successful!"
     else
-        warn "Migration validation: $errors table(s) have count mismatches"
+        log_warn "Migration validation: $errors table(s) have count mismatches"  # ИСПРАВЛЕНО
     fi
     
     return $errors

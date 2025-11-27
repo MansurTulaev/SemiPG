@@ -93,35 +93,53 @@ upsert_data() {
     local table="$1"
     local temp_file="$2"
     
+    log_info "DEBUG: Upserting $table from $temp_file"
+    
     local pk_columns=$(get_primary_key_columns "$table")
     
     if [[ -z "$pk_columns" ]]; then
-        log_warn "No primary key found for $table, using INSERT IGNORE"
-        psql -d "$TARGET_DSN" -c "
-            CREATE TEMP TABLE temp_upsert AS SELECT * FROM $table WHERE 1=0;
-            \copy temp_upsert FROM '$temp_file' WITH CSV;
-            
-            INSERT INTO $table 
-            SELECT * FROM temp_upsert 
-            ON CONFLICT DO NOTHING;
-            
-            DROP TABLE temp_upsert;
-        " >/dev/null 2>&1
+        log_warn "No primary key found for $table, using simple INSERT"
+        # Простой INSERT для таблиц без PK
+        if psql -d "$TARGET_DSN" -c "\COPY $table FROM '$temp_file' WITH CSV"; then
+            local count=$(psql -d "$TARGET_DSN" -t -c "SELECT COUNT(*) FROM $table;" | tr -d ' ')
+            log_info "INSERT completed for $table - now has $count rows"
+        else
+            log_error "INSERT failed for $table"
+            return 1
+        fi
     else
-        # Автоматически генерируем UPDATE часть для всех колонок кроме PK
+        log_info "DEBUG: Primary keys: $pk_columns"
         local update_columns=$(generate_update_columns "$table" "$pk_columns")
+        log_info "DEBUG: Update columns: $update_columns"
         
-        psql -d "$TARGET_DSN" -c "
-            CREATE TEMP TABLE temp_upsert AS SELECT * FROM $table WHERE 1=0;
-            \copy temp_upsert FROM '$temp_file' WITH CSV;
-            
-            INSERT INTO $table 
-            SELECT * FROM temp_upsert 
-            ON CONFLICT ($pk_columns) 
-            DO UPDATE SET $update_columns;
-            
-            DROP TABLE temp_upsert;
-        " >/dev/null 2>&1
+        # Используем один SQL файл для всего UPSERT в одном соединении
+        local upsert_sql="$WORK_DIR/temp/upsert_${table}.sql"
+        
+        cat > "$upsert_sql" << EOF
+-- Create temp table and load data
+CREATE TEMP TABLE temp_upsert AS SELECT * FROM $table WHERE 1=0;
+\\copy temp_upsert FROM '$temp_file' WITH CSV
+
+-- Perform UPSERT
+INSERT INTO $table 
+SELECT * FROM temp_upsert 
+ON CONFLICT ($pk_columns) 
+DO UPDATE SET $update_columns;
+
+-- Cleanup
+DROP TABLE temp_upsert;
+EOF
+        
+        # Выполняем весь SQL в одном соединении
+        if psql -d "$TARGET_DSN" -f "$upsert_sql" >/dev/null 2>&1; then
+            local count=$(psql -d "$TARGET_DSN" -t -c "SELECT COUNT(*) FROM $table;" | tr -d ' ')
+            log_info "UPSERT completed for $table - now has $count rows"
+        else
+            log_error "UPSERT failed for $table"
+            return 1
+        fi
+        
+        rm -f "$upsert_sql"
     fi
 }
 
@@ -152,29 +170,28 @@ generate_update_columns() {
     local table="$1"
     local pk_columns="$2"
     
-    # Преобразуем PK колонки в массив для исключения
+    # Экранируем PK колонки для SQL запроса
+    local pk_list=""
     IFS=',' read -ra pk_array <<< "$pk_columns"
-    local exclude_columns=""
     for col in "${pk_array[@]}"; do
-        exclude_columns="$exclude_columns|$col"
+        if [[ -n "$pk_list" ]]; then
+            pk_list="$pk_list,"
+        fi
+        pk_list="${pk_list}'$col'"
     done
     
     # Получаем все колонки кроме PK
-    psql -d "$SOURCE_DSN" -t -c "
-        SELECT string_agg(column_name, ', ')
+    local update_columns=$(psql -d "$SOURCE_DSN" -t -c "
+        SELECT string_agg(
+            format('%I = EXCLUDED.%I', column_name, column_name), 
+            ', '
+            ORDER BY ordinal_position
+        )
         FROM information_schema.columns 
         WHERE table_name = '$table' 
           AND table_schema = 'public'
-          AND column_name NOT IN (${pk_columns//,/','})
-        ORDER BY ordinal_position;
-    " | tr -d ' ' | grep -v '^$' | while IFS=',' read -ra columns; do
-        local update_set=""
-        for col in "${columns[@]}"; do
-            if [[ -n "$update_set" ]]; then
-                update_set="$update_set, "
-            fi
-            update_set="${update_set}${col} = EXCLUDED.${col}"
-        done
-        echo "$update_set"
-    done
+          AND column_name NOT IN ($pk_list);
+    " | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    
+    echo "$update_columns"
 }

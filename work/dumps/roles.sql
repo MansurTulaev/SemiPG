@@ -2,7 +2,7 @@
 -- PostgreSQL database cluster dump
 --
 
-\restrict z8GGqeMfnjuOHlIGlDMzrGlYHbFs28MI8gRDewbiBrEOQe9i74OHWllWKr9yN2R
+\restrict uivGOy8AQtZuckKyLXea8PCKmClkaENpJjgt1Hg8daxmSE0CIDdbqZcUVc7YwR4
 
 SET default_transaction_read_only = off;
 
@@ -14,7 +14,7 @@ SET standard_conforming_strings = on;
 --
 
 CREATE ROLE migrator;
-ALTER ROLE migrator WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS PASSWORD 'SCRAM-SHA-256$4096:PW4q4mA/FLeONiKB6evevQ==$Av5BT8HEf43KSd/mzPDkarT7Fpj9bIFtz5Qc3OpKPMk=:rwhoFPPXplE9Ozu45RLp41gB9CYIHwTtk4W7I7/A4kE=';
+ALTER ROLE migrator WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS PASSWORD 'SCRAM-SHA-256$4096:BRd33cleWZ+lwSW2nQ0YDg==$f5gOzp/ZvsLY6Y1bsnEI6qegLhZ+h3MKHYgYs4xVe+s=:AGG5m++k7/ndHCYg5ofd8UUFpSY853X1B5K4yUQeeq4=';
 
 --
 -- User Configurations
@@ -27,7 +27,7 @@ ALTER ROLE migrator WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION
 
 
 
-\unrestrict z8GGqeMfnjuOHlIGlDMzrGlYHbFs28MI8gRDewbiBrEOQe9i74OHWllWKr9yN2R
+\unrestrict uivGOy8AQtZuckKyLXea8PCKmClkaENpJjgt1Hg8daxmSE0CIDdbqZcUVc7YwR4
 
 --
 -- PostgreSQL database cluster dump complete

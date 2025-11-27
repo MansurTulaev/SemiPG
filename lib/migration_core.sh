@@ -21,7 +21,6 @@ migrate_table_structure() {
     
     rm -f "$temp_file"
 }
-
 migrate_table_data_copy() {
     local table="$1"
     local thread_id="$2"
@@ -31,13 +30,23 @@ migrate_table_data_copy() {
     
     local temp_file="$WORK_DIR/temp/${table}_${thread_id}.csv"
     
-    # УНИВЕРСАЛЬНЫЙ ЭКСПОРТ - без хардкода колонок
+    # ЭКСПОРТ данных
     log_info "Exporting $table data..."
     psql -d "$SOURCE_DSN" -c "\COPY (SELECT * FROM $table WHERE $where_clause) TO STDOUT WITH CSV" > "$temp_file"
     
-    # УНИВЕРСАЛЬНЫЙ ИМПОРТ
-    log_info "Importing $table data..."
-    if ! psql -d "$TARGET_DSN" -c "\COPY $table FROM STDIN WITH CSV" < "$temp_file" 2>/dev/null; then
+    log_info "DEBUG: First 2 lines of $table CSV:"
+    head -2 "$temp_file"
+    
+    log_info "DEBUG: Trying to import $table data..."
+    
+    # ЗАГРУЗКА с немедленной проверкой
+    if psql -d "$TARGET_DSN" -c "\COPY $table FROM STDIN WITH CSV" < "$temp_file" 2>&1; then
+        log_success "COPY successful for $table"
+        
+        # НЕМЕДЛЕННАЯ ПРОВЕРКА после загрузки
+        local immediate_count=$(psql -d "$TARGET_DSN" -t -c "SELECT COUNT(*) FROM $table;" | tr -d ' ')
+        log_info "DEBUG: Immediate count after COPY: $immediate_count rows"
+    else
         log_error "Failed to import data for table: $table"
         return 1
     fi
