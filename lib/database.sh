@@ -11,6 +11,20 @@ test_connection() {
     log_success "Connected to $dbname database"
 }
 
+get_tables_to_migrate() {
+    if [[ "$TABLES" == "all" ]]; then
+        psql -d "$SOURCE_DSN" -t -c "
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_type = 'BASE TABLE'
+            ORDER BY table_name;
+        " | tr -d ' ' | grep -v '^$'
+    else
+        echo "$TABLES" | tr ',' '\n'
+    fi
+}
+
 migrate_roles() {
     log_stage "1. MIGRATING ROLES"
     

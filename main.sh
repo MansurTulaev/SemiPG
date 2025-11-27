@@ -20,6 +20,36 @@ source "$SCRIPT_DIR/utils/error_handler.sh"
 source "$SCRIPT_DIR/utils/progress.sh"
 echo "import finished"
 
+# Добавьте проверку после импортов:
+check_imports() {
+    local missing_files=()
+    
+    # Проверка основных библиотек
+    local libs=("logger" "config_loader" "database" "migration_core" "migration_queues")
+    for lib in "${libs[@]}"; do
+        if [[ ! -f "$SCRIPT_DIR/lib/${lib}.sh" ]]; then
+            missing_files+=("lib/${lib}.sh")
+        fi
+    done
+    
+    if [[ ${#missing_files[@]} -gt 0 ]]; then
+        log_error "Missing required files: ${missing_files[*]}"
+        exit 1
+    fi
+}
+
+# Вызовите после импортов:
+check_imports
+
+setup_migration() {
+    log_info "Creating helper functions..."
+    create_helper_functions
+    
+    log_info "Cleaning target database..."
+    clean_target_tables
+    
+    return 0
+}
 # =============================================================================
 # ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 # =============================================================================

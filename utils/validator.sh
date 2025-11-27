@@ -25,7 +25,8 @@ validate_migration() {
         fi
     done
     
-    log "Total records: source=$total_source, target=$target_target"
+    # ИСПРАВЛЕННАЯ СТРОКА:
+    log "Total records: source=$total_source, target=$total_target"
     
     if [[ $errors -eq 0 ]]; then
         log "✓ Migration validation successful!"

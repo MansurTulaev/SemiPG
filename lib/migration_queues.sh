@@ -58,3 +58,18 @@ apply_all_indexes_and_constraints() {
     
     log_success "Indexes and constraints applied"
 }
+
+# Добавьте недостающие функции:
+migrate_schema_phase() {
+    run_migration_phase "SCHEMA"
+}
+
+migrate_data_phase() {
+    run_migration_phase "DATA" 
+}
+
+setup_migration() {
+    log_info "Setting up migration environment..."
+    create_helper_functions
+    return 0
+}
